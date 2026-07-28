@@ -1,0 +1,2365 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>SUDOKU++</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            min-height: 100vh;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            padding: 12px;
+            overflow-x: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(145deg, #e8d5c8, #d4bfb0, #c0a898);
+            background-size: 300% 300%;
+            animation: gradientShift 10s ease-in-out infinite alternate;
+            transition: background 0.6s ease;
+            position: relative;
+        }
+
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .floating-emojis {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+        .floating-emoji {
+            position: absolute;
+            font-size: 28px;
+            opacity: 0.08;
+            animation: floatEmoji 20s linear infinite;
+            user-select: none;
+        }
+        .floating-emoji:nth-child(1) { left: 5%; animation-duration: 22s; animation-delay: 0s; font-size: 32px; }
+        .floating-emoji:nth-child(2) { left: 15%; animation-duration: 18s; animation-delay: 3s; font-size: 24px; }
+        .floating-emoji:nth-child(3) { left: 25%; animation-duration: 25s; animation-delay: 1s; font-size: 36px; }
+        .floating-emoji:nth-child(4) { left: 35%; animation-duration: 20s; animation-delay: 5s; font-size: 28px; }
+        .floating-emoji:nth-child(5) { left: 45%; animation-duration: 17s; animation-delay: 2s; font-size: 30px; }
+        .floating-emoji:nth-child(6) { left: 55%; animation-duration: 23s; animation-delay: 4s; font-size: 26px; }
+        .floating-emoji:nth-child(7) { left: 65%; animation-duration: 19s; animation-delay: 6s; font-size: 34px; }
+        .floating-emoji:nth-child(8) { left: 75%; animation-duration: 21s; animation-delay: 0.5s; font-size: 28px; }
+        .floating-emoji:nth-child(9) { left: 85%; animation-duration: 24s; animation-delay: 3.5s; font-size: 32px; }
+        .floating-emoji:nth-child(10) { left: 92%; animation-duration: 16s; animation-delay: 7s; font-size: 24px; }
+
+        @keyframes floatEmoji {
+            0% { top: 110%; transform: rotate(0deg) scale(0.8); opacity: 0.04; }
+            10% { opacity: 0.10; }
+            90% { opacity: 0.10; }
+            100% { top: -10%; transform: rotate(720deg) scale(1.2); opacity: 0.02; }
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            border-radius: 32px;
+            padding: 20px 20px 16px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            max-width: 480px;
+            width: 100%;
+            min-height: 420px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            backdrop-filter: blur(12px);
+            background: rgba(255, 255, 255, 0.35);
+            transition: all 0.5s ease;
+        }
+
+        .hidden { display: none !important; }
+
+        /* ===== МЕНЮ ===== */
+        .menu-screen {
+            text-align: center;
+            border-radius: 24px;
+            padding: 16px 12px 14px;
+        }
+        .menu-screen .icon { font-size: 48px; display: block; margin-bottom: 0px; }
+        .menu-screen h1 { 
+            font-size: 32px; 
+            font-weight: 800; 
+            letter-spacing: 2px; 
+            color: #2a1a14; 
+            margin-bottom: 2px;
+            text-shadow: 0 2px 20px rgba(255,255,255,0.3);
+        }
+        .menu-screen h1 .plus { color: #c06050; }
+        .menu-screen .subtitle { 
+            color: rgba(42, 26, 20, 0.3); 
+            font-size: 11px; 
+            letter-spacing: 3px; 
+            font-weight: 300; 
+            text-transform: uppercase; 
+            margin-bottom: 16px; 
+        }
+
+        .menu-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            max-width: 280px;
+            margin: 0 auto;
+        }
+
+        .menu-btn {
+            padding: 14px 8px;
+            border: none;
+            border-radius: 16px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(8px);
+            color: #2a1a14;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 100%;
+            max-width: 240px;
+        }
+        .menu-btn .emoji { font-size: 20px; }
+        .menu-btn .label { font-size: 11px; color: #2a1a14; }
+        .menu-btn:hover { 
+            transform: translateY(-2px); 
+            background: rgba(255, 255, 255, 0.7); 
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border-color: rgba(255, 255, 255, 0.5);
+        }
+        .menu-btn:active { transform: scale(0.95); }
+
+        .menu-btn.primary {
+            background: linear-gradient(135deg, #3a2220, #2a1814);
+            color: #f0e0d8;
+            border: 1px solid rgba(192, 96, 80, 0.2);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+        .menu-btn.primary .label { color: #f0e0d8; }
+        .menu-btn.primary:hover { 
+            background: linear-gradient(135deg, #4a3228, #3a2220);
+            border-color: rgba(192, 96, 80, 0.4);
+            box-shadow: 0 4px 30px rgba(192, 96, 80, 0.15);
+        }
+
+        .menu-btn.continue-btn {
+            background: linear-gradient(135deg, #4a7a68, #3a5a4a);
+            color: #f0f0e8;
+            border: 1px solid rgba(74, 122, 104, 0.2);
+            box-shadow: 0 4px 20px rgba(74, 122, 104, 0.1);
+            animation: pulseBtn 2s ease-in-out infinite;
+            width: 100%;
+            max-width: 240px;
+        }
+        .menu-btn.continue-btn .label { color: #e0f0e8; }
+        .menu-btn.continue-btn:hover { 
+            background: linear-gradient(135deg, #5a8a78, #4a6a5a);
+            border-color: rgba(74, 122, 104, 0.4);
+        }
+        .menu-btn.continue-btn.hidden-btn { display: none; }
+
+        @keyframes pulseBtn {
+            0%, 100% { box-shadow: 0 4px 20px rgba(74, 122, 104, 0.1); }
+            50% { box-shadow: 0 4px 40px rgba(74, 122, 104, 0.25); }
+        }
+
+        .menu-btn.rules-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            max-width: 200px;
+        }
+        .menu-btn.rules-btn:hover {
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .menu-footer {
+            margin-top: 16px;
+            display: flex;
+            justify-content: space-around;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .menu-footer .footer-btn {
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 8px 12px;
+            color: rgba(42, 26, 20, 0.4);
+            font-size: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            backdrop-filter: blur(4px);
+        }
+        .menu-footer .footer-btn:hover { 
+            background: rgba(255, 255, 255, 0.45); 
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: rgba(42, 26, 20, 0.7);
+        }
+        .menu-footer .footer-btn .emoji { font-size: 14px; }
+
+        .back-btn {
+            background: rgba(255, 255, 255, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            color: #2a1a14;
+            font-size: 14px;
+            cursor: pointer;
+            padding: 6px 14px;
+            border-radius: 30px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+            backdrop-filter: blur(4px);
+        }
+        .back-btn:hover { 
+            background: rgba(255, 255, 255, 0.5);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .screen-title { 
+            font-size: 20px; 
+            color: #2a1a14; 
+            margin: 6px 0 12px; 
+            text-align: center; 
+            font-weight: 600;
+            text-shadow: 0 2px 10px rgba(255,255,255,0.2);
+        }
+        .screen-sub { 
+            text-align: center; 
+            color: rgba(42, 26, 20, 0.3); 
+            font-size: 12px; 
+            margin-top: 12px; 
+            letter-spacing: 0.5px; 
+        }
+
+        /* ===== ПРАВИЛА ===== */
+        .rules-content {
+            max-width: 360px;
+            margin: 0 auto;
+            text-align: left;
+            color: #2a1a14;
+            font-size: 13px;
+            line-height: 1.6;
+            padding: 0 8px;
+        }
+        .rules-content h3 { font-size: 14px; margin-top: 10px; color: #2a1a14; }
+        .rules-content ul { list-style: none; padding: 0; }
+        .rules-content ul li { padding: 4px 0; border-bottom: 1px solid rgba(0,0,0,0.04); }
+        .rules-content ul li:before { content: "▸ "; color: #c06050; }
+
+        /* ===== ПРОФИЛЬ ===== */
+        .profile-card {
+            max-width: 360px;
+            margin: 0 auto;
+            background: rgba(255,255,255,0.2);
+            border-radius: 16px;
+            padding: 16px;
+            border: 1px solid rgba(255,255,255,0.15);
+        }
+        .profile-card .avatar {
+            font-size: 48px;
+            display: block;
+            margin-bottom: 4px;
+        }
+        .profile-card .name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #2a1a14;
+        }
+        .profile-card .sub {
+            font-size: 11px;
+            color: rgba(42, 26, 20, 0.4);
+        }
+        .profile-card .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            font-size: 12px;
+            color: #2a1a14;
+        }
+        .profile-card .stats-row .label { color: rgba(42, 26, 20, 0.4); }
+        .profile-card .stats-row .value { font-weight: 600; }
+
+        .profile-input {
+            max-width: 300px;
+            margin: 8px auto;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .profile-input input {
+            padding: 8px 12px;
+            border: 1px solid rgba(0,0,0,0.08);
+            border-radius: 10px;
+            background: rgba(255,255,255,0.3);
+            font-family: inherit;
+            font-size: 13px;
+            outline: none;
+            flex: 1;
+            min-width: 150px;
+            color: #2a1a14;
+        }
+        .profile-input input:focus { border-color: rgba(192, 96, 80, 0.3); }
+        .profile-input input::placeholder { color: rgba(42, 26, 20, 0.2); }
+        .profile-input button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #3a2220, #2a1814);
+            color: #f0e0d8;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(192, 96, 80, 0.15);
+        }
+        .profile-input button:hover { 
+            background: linear-gradient(135deg, #4a3228, #3a2220);
+            border-color: rgba(192, 96, 80, 0.3);
+        }
+
+        /* ===== РЕЖИМЫ ===== */
+        .mode-select {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            max-width: 360px;
+            margin: 0 auto;
+        }
+        .mode-btn {
+            padding: 12px 8px;
+            border: none;
+            border-radius: 14px;
+            font-size: 13px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.3);
+            color: #2a1a14;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+        }
+        .mode-btn:hover { transform: translateY(-2px); background: rgba(255, 255, 255, 0.5); }
+        .mode-btn:active { transform: scale(0.95); }
+        .mode-btn .sub { 
+            font-size: 10px; 
+            font-weight: 400; 
+            color: rgba(42, 26, 20, 0.3); 
+            display: block; 
+            margin-top: 2px; 
+        }
+        .mode-btn.selected { 
+            border-color: rgba(192, 96, 80, 0.3); 
+            background: rgba(192, 96, 80, 0.08);
+        }
+        .mode-btn.killer { 
+            border-color: rgba(192, 96, 80, 0.1); 
+            background: rgba(192, 96, 80, 0.04); 
+        }
+        .mode-btn.killer.selected {
+            border-color: rgba(192, 96, 80, 0.3);
+            background: rgba(192, 96, 80, 0.08);
+        }
+
+        /* ===== СТАТИСТИКА ===== */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            max-width: 360px;
+            margin: 0 auto 12px;
+        }
+        .stats-card {
+            background: rgba(255, 255, 255, 0.25);
+            padding: 12px 6px;
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            text-align: center;
+            backdrop-filter: blur(4px);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .stats-card:hover { transform: translateY(-3px) scale(1.03); background: rgba(255, 255, 255, 0.4); }
+        .stats-card:active { transform: scale(0.95); }
+        .stats-card .val { font-size: 22px; font-weight: 700; color: #2a1a14; }
+        .stats-card .val.gold { color: #c09040; }
+        .stats-card .val.red { color: #c06050; }
+        .stats-card .val.green { color: #4a8a70; }
+        .stats-card .val.time { font-size: 16px; color: #2a1a14; }
+        .stats-card .lbl { 
+            font-size: 7px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            color: rgba(42, 26, 20, 0.3); 
+            margin-top: 3px; 
+        }
+
+        .stats-list {
+            max-width: 360px;
+            margin: 0 auto;
+        }
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 5px 8px;
+            border-bottom: 1px solid rgba(0,0,0,0.04);
+            color: #2a1a14;
+            font-size: 12px;
+        }
+        .stats-row .label { color: rgba(42, 26, 20, 0.4); }
+        .stats-row .value { font-weight: 600; }
+
+        .stats-message {
+            text-align: center;
+            margin-top: 10px;
+            color: rgba(42, 26, 20, 0.25);
+            font-size: 12px;
+            transition: all 0.5s ease;
+            padding: 6px;
+            border-radius: 10px;
+        }
+
+        /* ===== ТЕМЫ ===== */
+        .theme-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr 1fr 1fr;
+            gap: 6px;
+            max-width: 380px;
+            margin: 0 auto 10px;
+        }
+        .theme-btn {
+            padding: 8px 2px;
+            border: none;
+            border-radius: 12px;
+            font-size: 9px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.2);
+            color: #2a1a14;
+            border: 2px solid transparent;
+            text-align: center;
+            backdrop-filter: blur(4px);
+        }
+        .theme-btn .dot { 
+            display: block; 
+            width: 24px; 
+            height: 24px; 
+            border-radius: 50%; 
+            margin: 0 auto 3px; 
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            transition: all 0.3s ease;
+        }
+        .theme-btn:hover { transform: scale(1.04); background: rgba(255, 255, 255, 0.35); }
+        .theme-btn.active { 
+            border-color: rgba(192, 96, 80, 0.3); 
+            background: rgba(192, 96, 80, 0.06);
+        }
+        .theme-btn.active .dot { border-color: rgba(192, 96, 80, 0.4); }
+        .theme-btn.peach .dot { background: linear-gradient(135deg, #f5b8a8, #d4907a); }
+        .theme-btn.blue .dot { background: linear-gradient(135deg, #7ab8d8, #4a88a8); }
+        .theme-btn.green .dot { background: linear-gradient(135deg, #7ac8a8, #4a9880); }
+        .theme-btn.rose .dot { background: linear-gradient(135deg, #d8a0a8, #b87880); }
+        .theme-btn.lavender .dot { background: linear-gradient(135deg, #c8a8d8, #a080b8); }
+
+        /* ===== ИГРОВОЙ ЭКРАН ===== */
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .game-header .left { display: flex; align-items: center; gap: 4px; }
+        .game-header .title-sm { 
+            font-size: 14px; 
+            font-weight: 700; 
+            color: #2a1a14;
+            text-shadow: 0 2px 10px rgba(255,255,255,0.2);
+        }
+        .game-stats {
+            display: flex;
+            gap: 6px;
+            background: rgba(255, 255, 255, 0.25);
+            padding: 3px 8px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            flex-wrap: wrap;
+            backdrop-filter: blur(4px);
+        }
+        .game-stats .stat-item { text-align: center; padding: 0 2px; }
+        .game-stats .stat-item .label { 
+            font-size: 5px; 
+            text-transform: uppercase; 
+            letter-spacing: 0.6px; 
+            color: rgba(42, 26, 20, 0.3); 
+            font-weight: 600; 
+        }
+        .game-stats .stat-item .value { 
+            font-size: 12px; 
+            font-weight: 700; 
+            color: #2a1a14; 
+        }
+        .game-stats .stat-item .value.gold { color: #c09040; }
+        .game-stats .stat-item .value.red { color: #c06050; }
+        .game-stats .stat-item .value.green { color: #4a8a70; }
+        .game-stats .stat-item .value.time { color: #2a1a14; }
+
+        .progress-container {
+            width: 100%;
+            height: 3px;
+            background: rgba(0,0,0,0.05);
+            border-radius: 3px;
+            margin-top: 6px;
+            overflow: hidden;
+        }
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4a8a70, #6aaa88);
+            border-radius: 3px;
+            transition: width 0.5s ease;
+            width: 0%;
+        }
+
+        .board-wrapper {
+            position: relative;
+            margin: 0 auto;
+            width: 100%;
+            max-width: 420px;
+            aspect-ratio: 1;
+        }
+
+        canvas {
+            display: block;
+            width: 100% !important;
+            height: 100% !important;
+            border-radius: 14px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            cursor: pointer;
+            touch-action: none;
+            transition: background 0.5s ease;
+        }
+
+        .pause-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            border-radius: 14px;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            gap: 4px;
+            color: #2a1a14;
+            font-size: 22px;
+            font-weight: 700;
+            z-index: 10;
+        }
+        .pause-overlay.show { display: flex; }
+        .pause-overlay .sub { 
+            font-size: 12px; 
+            font-weight: 400; 
+            color: rgba(42, 26, 20, 0.3); 
+        }
+
+        .selected-info {
+            display: flex;
+            justify-content: center;
+            margin-top: 4px;
+            padding: 0 4px;
+            gap: 12px;
+        }
+        .selected-info .hint-text { 
+            font-size: 11px; 
+            color: rgba(42, 26, 20, 0.3); 
+        }
+        .selected-info .hint-text strong { 
+            color: #2a1a14; 
+        }
+
+        .number-pad {
+            display: flex;
+            gap: 4px;
+            justify-content: center;
+            margin-top: 6px;
+            flex-wrap: wrap;
+        }
+        .num-btn {
+            width: 34px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            font-size: 14px;
+            font-weight: 600;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.3);
+            color: #2a1a14;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.1;
+            backdrop-filter: blur(4px);
+        }
+        .num-btn .count-badge { 
+            font-size: 6px; 
+            font-weight: 400; 
+            color: rgba(42, 26, 20, 0.2); 
+        }
+        .num-btn .count-badge.zero { color: #c06050; opacity: 0.5; }
+        .num-btn:hover { 
+            background: rgba(255, 255, 255, 0.5); 
+            transform: translateY(-2px);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+        .num-btn:active { transform: scale(0.92); }
+        .num-btn.active { 
+            background: rgba(192, 96, 80, 0.15); 
+            color: #2a1a14; 
+            border-color: rgba(192, 96, 80, 0.3); 
+        }
+        .num-btn.active .count-badge { color: rgba(192, 96, 80, 0.5); }
+        .num-btn.completed { border-color: rgba(74, 138, 112, 0.3); }
+        .num-btn.completed .count-badge { color: #4a8a70; }
+        .num-btn.erase { 
+            font-size: 11px; 
+            background: rgba(192, 96, 80, 0.06); 
+            color: #c06050; 
+            border-color: rgba(192, 96, 80, 0.1);
+        }
+        .num-btn.erase:hover { background: rgba(192, 96, 80, 0.12); }
+
+        .game-controls {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            margin-top: 6px;
+            justify-content: center;
+        }
+        .game-controls .btn {
+            padding: 4px 8px;
+            border: none;
+            border-radius: 30px;
+            font-size: 9px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(255, 255, 255, 0.25);
+            color: #2a1a14;
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(4px);
+        }
+        .game-controls .btn:hover { 
+            transform: translateY(-2px); 
+            background: rgba(255, 255, 255, 0.45);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+        .game-controls .btn:active { transform: scale(0.95); }
+        .game-controls .btn-primary { 
+            background: linear-gradient(135deg, #3a2220, #2a1814); 
+            color: #f0e0d8; 
+            border: 1px solid rgba(192, 96, 80, 0.2);
+        }
+        .game-controls .btn-primary:hover { 
+            background: linear-gradient(135deg, #4a3228, #3a2220);
+            border-color: rgba(192, 96, 80, 0.4);
+        }
+        .game-controls .btn-success { 
+            background: linear-gradient(135deg, #3a5a4a, #2a4a3a); 
+            color: #e0f0e8; 
+            border: 1px solid rgba(74, 138, 112, 0.2);
+        }
+        .game-controls .btn-success:hover { 
+            background: linear-gradient(135deg, #4a6a5a, #3a5a4a);
+            border-color: rgba(74, 138, 112, 0.4);
+        }
+        .game-controls .btn-danger { 
+            background: rgba(192, 96, 80, 0.1); 
+            color: #c06050; 
+            border: 1px solid rgba(192, 96, 80, 0.1);
+        }
+        .game-controls .btn-danger:hover { 
+            background: rgba(192, 96, 80, 0.2);
+            border-color: rgba(192, 96, 80, 0.2);
+        }
+        .game-controls .btn-outline { 
+            background: transparent; 
+            border: 1px solid rgba(0,0,0,0.06);
+        }
+        .game-controls .btn-outline:hover { 
+            border-color: rgba(0,0,0,0.15); 
+            background: rgba(255, 255, 255, 0.2);
+        }
+        .game-controls .btn-notes.active { 
+            background: rgba(192, 96, 80, 0.1); 
+            border-color: rgba(192, 96, 80, 0.2);
+        }
+        .game-controls .btn-pause { 
+            background: transparent; 
+            border: 1px solid rgba(0,0,0,0.06); 
+            min-width: 30px; 
+            justify-content: center; 
+            font-size: 9px; 
+        }
+        .game-controls .btn-pause:hover { background: rgba(255, 255, 255, 0.2); }
+        .game-controls .btn-pause.paused { 
+            background: rgba(192, 96, 80, 0.08); 
+            border-color: rgba(192, 96, 80, 0.15);
+        }
+
+        .game-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 6px;
+            padding: 0 4px;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        .game-footer .status { 
+            font-size: 9px; 
+            color: rgba(42, 26, 20, 0.3); 
+        }
+        .game-footer .status.success { color: #4a8a70; }
+        .game-footer .status.error { color: #c06050; }
+        .game-footer .status.win { color: #c09040; }
+
+        .difficulty-badge {
+            padding: 2px 8px;
+            border-radius: 30px;
+            font-size: 7px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.6px;
+            background: rgba(255, 255, 255, 0.2);
+            color: rgba(42, 26, 20, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .difficulty-badge.easy { color: #4a8a70; border-color: rgba(74, 138, 112, 0.2); }
+        .difficulty-badge.medium { color: #c09040; border-color: rgba(192, 144, 64, 0.2); }
+        .difficulty-badge.hard { color: #c06050; border-color: rgba(192, 96, 80, 0.2); }
+        .difficulty-badge.extreme { color: #906090; border-color: rgba(144, 96, 144, 0.2); }
+        .difficulty-badge.killer { color: #c06050; border-color: rgba(192, 96, 80, 0.2); }
+
+        .mini-toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(12px);
+            border-radius: 12px;
+            padding: 8px 16px;
+            color: #2a1a14;
+            font-size: 13px;
+            font-weight: 600;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(.34, 1.56, .64, 1);
+            z-index: 100;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+        .mini-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        .mini-toast .emoji { margin-right: 4px; }
+
+        .confetti-container {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 999;
+            overflow: hidden;
+        }
+        .confetti {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            opacity: 0;
+            animation: confettiFall linear forwards;
+        }
+        @keyframes confettiFall {
+            0% { transform: translateY(-10vh) rotate(0deg) scale(1); opacity: 1; }
+            100% { transform: translateY(110vh) rotate(720deg) scale(0.3); opacity: 0; }
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.2);
+            backdrop-filter: blur(6px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal {
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            padding: 24px 20px 20px;
+            max-width: 300px;
+            width: 100%;
+            text-align: center;
+            box-shadow: 0 40px 80px rgba(0, 0, 0, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            animation: slideUp 0.5s cubic-bezier(.34, 1.56, .64, 1);
+        }
+        .modal .emoji { font-size: 40px; display: block; margin-bottom: 4px; }
+        .modal h2 { color: #2a1a14; font-size: 20px; font-weight: 700; }
+        .modal .sub { color: rgba(42, 26, 20, 0.3); font-size: 11px; margin-bottom: 6px; }
+        .modal .big-score { color: #c09040; font-size: 28px; font-weight: 700; margin: 2px 0 8px; }
+        .modal .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin: 4px 0 12px; }
+        .modal .stats-grid .item { 
+            background: rgba(255, 255, 255, 0.3); 
+            padding: 4px; 
+            border-radius: 8px; 
+        }
+        .modal .stats-grid .item .val { 
+            font-size: 12px; 
+            font-weight: 700; 
+            color: #2a1a14; 
+        }
+        .modal .stats-grid .item .lbl { 
+            font-size: 6px; 
+            text-transform: uppercase; 
+            letter-spacing: 1px; 
+            color: rgba(42, 26, 20, 0.2); 
+        }
+        .modal .btn {
+            padding: 6px 20px;
+            border: none;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: linear-gradient(135deg, #3a2220, #2a1814);
+            color: #f0e0d8;
+            margin: 0 auto;
+            border: 1px solid rgba(192, 96, 80, 0.15);
+        }
+        .modal .btn:hover { 
+            background: linear-gradient(135deg, #4a3228, #3a2220);
+            border-color: rgba(192, 96, 80, 0.3);
+        }
+
+        @media (max-width: 480px) {
+            .container { padding: 10px 10px 8px; border-radius: 20px; }
+            .menu-screen h1 { font-size: 24px; }
+            .menu-btn { padding: 10px 6px; font-size: 11px; border-radius: 12px; }
+            .menu-btn .emoji { font-size: 16px; }
+            .num-btn { width: 28px; height: 30px; font-size: 12px; border-radius: 6px; }
+            .game-stats { gap: 4px; padding: 2px 6px; }
+            .game-stats .stat-item .value { font-size: 10px; }
+            .game-controls .btn { font-size: 8px; padding: 3px 6px; }
+            .theme-grid { gap: 4px; }
+            .theme-btn { font-size: 7px; padding: 4px 2px; }
+            .theme-btn .dot { width: 18px; height: 18px; }
+            .stats-grid { gap: 4px; }
+            .stats-card .val { font-size: 16px; }
+            .stats-card { padding: 8px 4px; }
+            .mode-btn { font-size: 11px; padding: 8px 4px; }
+            .modal { padding: 16px 12px; }
+            .modal .emoji { font-size: 32px; }
+            .menu-footer .footer-btn { font-size: 8px; padding: 6px 8px; }
+            .menu-footer .footer-btn .emoji { font-size: 12px; }
+        }
+        @media (max-width: 380px) {
+            .num-btn { width: 24px; height: 26px; font-size: 10px; border-radius: 4px; }
+            .num-btn .count-badge { font-size: 5px; }
+            .game-controls .btn { font-size: 7px; padding: 2px 4px; }
+            .container { padding: 6px; }
+            .menu-btn { padding: 6px 4px; font-size: 10px; }
+            .menu-btn .emoji { font-size: 14px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="floating-emojis" id="floatingEmojis">
+    <span class="floating-emoji">🧩</span>
+    <span class="floating-emoji">🎯</span>
+    <span class="floating-emoji">✨</span>
+    <span class="floating-emoji">🎲</span>
+    <span class="floating-emoji">🎮</span>
+    <span class="floating-emoji">🧠</span>
+    <span class="floating-emoji">⭐</span>
+    <span class="floating-emoji">🌈</span>
+    <span class="floating-emoji">🎨</span>
+    <span class="floating-emoji">💡</span>
+</div>
+
+<div class="container" id="app">
+
+    <!-- ===== ГЛАВНОЕ МЕНЮ ===== -->
+    <div class="menu-screen" id="menuScreen">
+        <span class="icon">🧩</span>
+        <h1>SUDOKU<span class="plus">++</span></h1>
+        <div class="subtitle">Классическая игра</div>
+        
+        <div class="menu-grid">
+            <button class="menu-btn continue-btn hidden-btn" id="continueBtn">
+                <span class="emoji">▶️</span>
+                <span class="label">Продолжить игру</span>
+            </button>
+            <button class="menu-btn primary" id="playBtn">
+                <span class="emoji">🎮</span>
+                <span class="label">Новая игра</span>
+            </button>
+            <button class="menu-btn rules-btn" id="rulesBtn">
+                <span class="emoji">📖</span>
+                <span class="label">Правила игры</span>
+            </button>
+        </div>
+
+        <!-- ===== НИЖНЯЯ ПАНЕЛЬ ===== -->
+        <div class="menu-footer">
+            <button class="footer-btn" id="footerStatsBtn">
+                <span class="emoji">📊</span> Статистика
+            </button>
+            <button class="footer-btn" id="footerThemesBtn">
+                <span class="emoji">🎨</span> Темы
+            </button>
+            <button class="footer-btn" id="footerProfileBtn">
+                <span class="emoji">👤</span> Профиль
+            </button>
+            <button class="footer-btn" id="footerKillerBtn">
+                <span class="emoji">💀</span> Киллер
+            </button>
+            <button class="footer-btn" id="footerShareBtn">
+                <span class="emoji">📤</span> Поделиться
+            </button>
+        </div>
+    </div>
+
+    <!-- ===== ПРАВИЛА ===== -->
+    <div class="menu-screen hidden" id="rulesScreen">
+        <button class="back-btn" id="rulesBack">← Назад</button>
+        <div class="screen-title">📖 Правила игры</div>
+        <div class="rules-content">
+            <h3>🎯 Цель игры</h3>
+            <p>Заполнить пустые клетки цифрами от 1 до 9 так, чтобы:</p>
+            <ul>
+                <li>В каждой строке цифры не повторялись</li>
+                <li>В каждом столбце цифры не повторялись</li>
+                <li>В каждом блоке 3×3 цифры не повторялись</li>
+            </ul>
+            <h3>🎮 Управление</h3>
+            <ul>
+                <li>Кликни по клетке, чтобы выбрать её</li>
+                <li>Нажми цифру на панели или клавиатуре</li>
+                <li>Режим заметок (✎) — вводи несколько вариантов</li>
+                <li>💡 Подсказка — показывает правильную цифру</li>
+                <li>↩ Отмена — отменяет последний ход</li>
+            </ul>
+            <h3>🏆 Бонусы</h3>
+            <ul>
+                <li>🔥 Комбо — за 3+ правильных хода подряд</li>
+                <li>⭐ За полное заполнение цифры — бонус</li>
+                <li>⏱️ Время влияет на итоговый счёт</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ===== РЕЖИМЫ ===== -->
+    <div class="menu-screen hidden" id="modeScreen">
+        <button class="back-btn" id="modeBack">← Назад</button>
+        <div class="screen-title">Выбери сложность</div>
+        <div class="mode-select">
+            <button class="mode-btn" data-mode="easy"><span class="sub">🟢</span> Лёгкий</button>
+            <button class="mode-btn" data-mode="medium"><span class="sub">🟡</span> Средний</button>
+            <button class="mode-btn" data-mode="hard"><span class="sub">🔴</span> Сложный</button>
+            <button class="mode-btn" data-mode="extreme"><span class="sub">💜</span> Экстрим</button>
+            <button class="mode-btn killer" data-mode="killer" style="grid-column: 1 / -1;">
+                <span class="sub">💀</span> Киллер-судоку
+                <span class="sub" style="font-size:9px;color:#c06050;">Суммы в блоках</span>
+            </button>
+        </div>
+        <div class="screen-sub">Нажми на режим, чтобы начать</div>
+    </div>
+
+    <!-- ===== СТАТИСТИКА ===== -->
+    <div class="menu-screen hidden" id="statsScreen">
+        <button class="back-btn" id="statsBack">← Назад</button>
+        <div class="screen-title">📊 Статистика</div>
+        <div class="stats-grid">
+            <div class="stats-card"><div class="val" id="statGames">0</div><div class="lbl">Игр сыграно</div></div>
+            <div class="stats-card"><div class="val gold" id="statWins">0</div><div class="lbl">Побед</div></div>
+            <div class="stats-card"><div class="val red" id="statLosses">0</div><div class="lbl">Поражений</div></div>
+        </div>
+        <div class="stats-grid" style="grid-template-columns:1fr 1fr;">
+            <div class="stats-card"><div class="val green" id="statTotalTime">0ч</div><div class="lbl">Время в игре</div></div>
+            <div class="stats-card"><div class="val" id="statKillerWins">0</div><div class="lbl">Побед в Киллер</div></div>
+        </div>
+        <div class="stats-list">
+            <div class="stats-row"><span class="label">🏆 Серия побед</span><span class="value" id="statStreak">0</span></div>
+            <div class="stats-row"><span class="label">🔥 Лучшая серия</span><span class="value" id="statBestStreak">0</span></div>
+            <div class="stats-row"><span class="label">⭐ Лучший счёт</span><span class="value" id="statBestScore">0</span></div>
+            <div class="stats-row"><span class="label">💎 Всего очков</span><span class="value" id="statTotalScore">0</span></div>
+            <div class="stats-row"><span class="label">⏱️ Лучшее время</span><span class="value" id="statBestTime">—</span></div>
+        </div>
+        <div class="stats-message" id="statsMessage">⭐ Пока нет побед. Начни игру!</div>
+    </div>
+
+    <!-- ===== ТЕМЫ ===== -->
+    <div class="menu-screen hidden" id="themesScreen">
+        <button class="back-btn" id="themesBack">← Назад</button>
+        <div class="screen-title">🎨 Тема</div>
+        <div class="theme-grid">
+            <button class="theme-btn peach active" data-theme="peach"><span class="dot"></span>Персик</button>
+            <button class="theme-btn blue" data-theme="blue"><span class="dot"></span>Синяя</button>
+            <button class="theme-btn green" data-theme="green"><span class="dot"></span>Зелёная</button>
+            <button class="theme-btn rose" data-theme="rose"><span class="dot"></span>Розовая</button>
+            <button class="theme-btn lavender" data-theme="lavender"><span class="dot"></span>Лаванда</button>
+        </div>
+        <div class="screen-sub">Выбери тему оформления</div>
+    </div>
+
+    <!-- ===== ПРОФИЛЬ ===== -->
+    <div class="menu-screen hidden" id="profileScreen">
+        <button class="back-btn" id="profileBack">← Назад</button>
+        <div class="screen-title">👤 Личный профиль</div>
+        <div class="profile-card">
+            <span class="avatar" id="profileAvatar">🧩</span>
+            <div class="name" id="profileName">Игрок</div>
+            <div class="sub" id="profileSub">Новичок</div>
+            
+            <div class="profile-input">
+                <input type="text" id="profileNameInput" placeholder="Введите имя" maxlength="20">
+                <button id="profileSaveName">Сохранить</button>
+            </div>
+            
+            <div class="stats-row"><span class="label">🎮 Сыграно игр</span><span class="value" id="profileGames">0</span></div>
+            <div class="stats-row"><span class="label">🏆 Побед</span><span class="value" id="profileWins">0</span></div>
+            <div class="stats-row"><span class="label">⏱️ Время в игре</span><span class="value" id="profileTime">0ч</span></div>
+            <div class="stats-row"><span class="label">💀 Киллер-побед</span><span class="value" id="profileKiller">0</span></div>
+            <div class="stats-row"><span class="label">⭐ Лучший счёт</span><span class="value" id="profileBestScore">0</span></div>
+        </div>
+    </div>
+
+    <!-- ===== ИГРА ===== -->
+    <div class="hidden" id="gameScreen">
+        <div class="game-header">
+            <div class="left">
+                <button class="back-btn" id="gameBack">←</button>
+                <span class="title-sm" id="gameModeLabel">Средний</span>
+            </div>
+            <div class="game-stats">
+                <div class="stat-item"><div class="label">Ошибки</div><div class="value red" id="gErrors">0</div></div>
+                <div class="stat-item"><div class="label">Подсказки</div><div class="value gold" id="gHints">3</div></div>
+                <div class="stat-item"><div class="label">Счёт</div><div class="value green" id="gScore">0</div></div>
+                <div class="stat-item"><div class="label">Время</div><div class="value time" id="gTimer">00:00</div></div>
+            </div>
+        </div>
+
+        <div class="progress-container">
+            <div class="progress-bar" id="progressBar"></div>
+        </div>
+
+        <div class="board-wrapper">
+            <canvas id="board" width="540" height="540"></canvas>
+            <div class="pause-overlay" id="pauseOverlay">
+                ⏸️ ПАУЗА 
+                <span class="sub">Нажми ▶️ чтобы продолжить</span>
+                <div style="margin-top:12px; display:flex; gap:6px; flex-wrap:wrap; justify-content:center;">
+                    <button class="back-btn" style="font-size:10px; padding:4px 12px;" onclick="showScreen(themesScreen);">🎨 Сменить тему</button>
+                    <button class="back-btn" style="font-size:10px; padding:4px 12px;" onclick="togglePause();">▶️ Продолжить</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="selected-info">
+            <span class="hint-text">Выбрано: <strong id="gSelectedNum">—</strong></span>
+            <span class="hint-text" id="gKillerInfo"></span>
+        </div>
+
+        <div class="number-pad" id="gNumberPad"></div>
+
+        <div class="game-controls">
+            <button class="btn btn-primary" id="gNewGame">✦ Новая</button>
+            <button class="btn btn-success" id="gHintBtn">💡</button>
+            <button class="btn btn-outline" id="gUndoBtn">↩</button>
+            <button class="btn btn-outline" id="gClearBtn">✕</button>
+            <button class="btn btn-notes" id="gNotesBtn">✎</button>
+            <button class="btn btn-pause" id="gPauseBtn">⏸️</button>
+        </div>
+
+        <div class="game-footer">
+            <span class="status" id="gStatus">⚡ Готово</span>
+            <span class="difficulty-badge medium" id="gDiffBadge">Средний</span>
+        </div>
+    </div>
+</div>
+
+<!-- ===== МОДАЛКИ ===== -->
+<div class="stats-modal-overlay" id="statsModal">
+    <div class="stats-modal">
+        <span class="emoji-big" id="statsModalEmoji">📊</span>
+        <h2 id="statsModalTitle">Статистика</h2>
+        <div class="sub" id="statsModalSub">Твои достижения</div>
+        <div class="stats-grid-inner">
+            <div class="item"><div class="val" id="modalGames">0</div><div class="lbl">Всего игр</div></div>
+            <div class="item"><div class="val gold" id="modalWins">0</div><div class="lbl">Побед</div></div>
+            <div class="item"><div class="val red" id="modalLosses">0</div><div class="lbl">Поражений</div></div>
+        </div>
+        <div class="stats-list-inner">
+            <div class="stats-row"><span class="label">🏆 Серия побед</span><span class="value" id="modalStreak">0</span></div>
+            <div class="stats-row"><span class="label">🔥 Лучшая серия</span><span class="value" id="modalBestStreak">0</span></div>
+            <div class="stats-row"><span class="label">⭐ Лучший счёт</span><span class="value" id="modalBestScore">0</span></div>
+            <div class="stats-row"><span class="label">💎 Всего очков</span><span class="value" id="modalTotalScore">0</span></div>
+            <div class="stats-row"><span class="label">⏱️ Лучшее время</span><span class="value" id="modalBestTime">—</span></div>
+        </div>
+        <button class="btn-close" id="statsModalClose">Закрыть</button>
+    </div>
+</div>
+
+<div class="mini-toast" id="miniToast"><span class="emoji">🎉</span> <span id="toastMessage">Готово!</span></div>
+<div class="confetti-container" id="confettiContainer"></div>
+
+<div class="modal-overlay" id="winModal">
+    <div class="modal">
+        <span class="emoji">🏆</span>
+        <h2>Поздравляем!</h2>
+        <div class="sub">Ты решил(а) судоку</div>
+        <div class="big-score" id="finalScore">0</div>
+        <div class="stats-grid">
+            <div class="item"><div class="val" id="finalErrors">0</div><div class="lbl">Ошибки</div></div>
+            <div class="item"><div class="val" id="finalTime">00:00</div><div class="lbl">Время</div></div>
+            <div class="item"><div class="val" id="finalDifficulty">Средний</div><div class="lbl">Сложность</div></div>
+        </div>
+        <button class="btn" id="winPlayAgain">🎮 Играть снова</button>
+    </div>
+</div>
+
+<style>
+    .stats-modal-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(6px);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 2000;
+    }
+    .stats-modal-overlay.active { display: flex; }
+    .stats-modal {
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(20px);
+        border-radius: 24px;
+        padding: 28px 24px 24px;
+        max-width: 360px;
+        width: 90%;
+        text-align: center;
+        box-shadow: 0 40px 80px rgba(0, 0, 0, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        animation: slideUp 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    .stats-modal .emoji-big { font-size: 44px; display: block; margin-bottom: 4px; }
+    .stats-modal h2 { color: #2a1a14; font-size: 22px; font-weight: 700; margin-bottom: 4px; }
+    .stats-modal .sub { color: rgba(42, 26, 20, 0.3); font-size: 13px; margin-bottom: 14px; }
+    .stats-modal .stats-grid-inner {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 8px;
+        margin: 0 auto 12px;
+    }
+    .stats-modal .stats-grid-inner .item {
+        background: rgba(255, 255, 255, 0.3);
+        padding: 10px 6px;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .stats-modal .stats-grid-inner .item .val { font-size: 20px; font-weight: 700; color: #2a1a14; }
+    .stats-modal .stats-grid-inner .item .val.gold { color: #c09040; }
+    .stats-modal .stats-grid-inner .item .val.red { color: #c06050; }
+    .stats-modal .stats-grid-inner .item .lbl { 
+        font-size: 7px; 
+        text-transform: uppercase; 
+        letter-spacing: 1px; 
+        color: rgba(42, 26, 20, 0.2); 
+        margin-top: 2px; 
+    }
+    .stats-modal .stats-list-inner {
+        max-width: 100%;
+        margin: 6px 0 14px;
+    }
+    .stats-modal .stats-list-inner .stats-row {
+        padding: 5px 6px;
+        border-bottom: 1px solid rgba(0,0,0,0.04);
+        font-size: 12px;
+        display: flex;
+        justify-content: space-between;
+        color: #2a1a14;
+    }
+    .stats-modal .stats-list-inner .stats-row .label { color: rgba(42, 26, 20, 0.4); }
+    .stats-modal .stats-list-inner .stats-row .value { font-weight: 600; }
+    .stats-modal .btn-close {
+        padding: 8px 28px;
+        border: none;
+        border-radius: 30px;
+        font-size: 13px;
+        font-weight: 600;
+        font-family: inherit;
+        cursor: pointer;
+        transition: all 0.25s ease;
+        background: linear-gradient(135deg, #3a2220, #2a1814);
+        color: #f0e0d8;
+        margin: 0 auto;
+        border: 1px solid rgba(192, 96, 80, 0.15);
+    }
+    .stats-modal .btn-close:hover { 
+        background: linear-gradient(135deg, #4a3228, #3a2220);
+        border-color: rgba(192, 96, 80, 0.3);
+    }
+    @keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+</style>
+
+<script>
+// ================================================================
+//  SUDOKU++ — ПОЛНАЯ ВЕРСИЯ
+// ================================================================
+
+let board = [], solution = [], initialBoard = [];
+let selectedCell = null, selectedNumber = null;
+let errors = 0, hintsLeft = 3, score = 0;
+let gameOver = false, isNotesMode = false;
+let history = [], notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+let timerInterval = null, seconds = 0, timerStarted = false;
+let completedNumbers = new Set();
+let currentMode = 'medium', currentTheme = 'peach';
+let isGameActive = false, isPaused = false;
+let correctStreak = 0;
+let totalCells = 0, filledCells = 0;
+let isKillerMode = false;
+let killerSums = [];
+let killerCages = [];
+
+const $ = id => document.getElementById(id);
+const canvas = $('board'), ctx = canvas.getContext('2d');
+const pauseOverlay = $('pauseOverlay');
+const progressBar = $('progressBar');
+const continueBtn = $('continueBtn');
+
+const gErrors = $('gErrors'), gHints = $('gHints'), gScore = $('gScore'), gTimer = $('gTimer');
+const gStatus = $('gStatus'), gDiffBadge = $('gDiffBadge'), gModeLabel = $('gameModeLabel');
+const gSelectedNum = $('gSelectedNum'), gNumberPad = $('gNumberPad'), gKillerInfo = $('gKillerInfo');
+const miniToast = $('miniToast'), toastMessage = $('toastMessage');
+const confettiContainer = $('confettiContainer'), winModal = $('winModal');
+const statsModal = $('statsModal');
+
+const SIZE = 9, CELL = canvas.width / SIZE;
+let profileName = localStorage.getItem('sudoku_profile_name') || 'Игрок';
+
+// ---- СОХРАНЕНИЕ ----
+function saveGame() {
+    const data = {
+        board, solution, initialBoard,
+        errors, hintsLeft, score, seconds, currentMode, currentTheme,
+        completedNumbers: Array.from(completedNumbers),
+        history: history.map(h => ({ ...h })),
+        notes: notes.map(row => row.map(col => Array.from(col))),
+        correctStreak, isKillerMode,
+        killerSums, killerCages
+    };
+    localStorage.setItem('sudoku_save', JSON.stringify(data));
+}
+
+function loadGame() {
+    const raw = localStorage.getItem('sudoku_save');
+    if (!raw) return null;
+    try { return JSON.parse(raw); } catch { return null; }
+}
+
+function deleteSave() { localStorage.removeItem('sudoku_save'); }
+function hasSave() { return localStorage.getItem('sudoku_save') !== null; }
+
+function updateContinueButton() {
+    if (hasSave()) {
+        continueBtn.classList.remove('hidden-btn');
+    } else {
+        continueBtn.classList.add('hidden-btn');
+    }
+}
+
+// ---- СТАТИСТИКА ----
+function getStats() {
+    const raw = localStorage.getItem('sudoku_stats');
+    return raw ? JSON.parse(raw) : {
+        games: 0, wins: 0, losses: 0, bestTime: null,
+        streak: 0, bestStreak: 0, bestScore: 0, totalScore: 0,
+        totalTime: 0, killerWins: 0
+    };
+}
+
+function saveStats(stats) { localStorage.setItem('sudoku_stats', JSON.stringify(stats)); }
+
+function updateStats(win, time, sc, killer = false) {
+    const stats = getStats();
+    stats.games++;
+    stats.totalTime += time;
+    if (win) {
+        stats.wins++;
+        stats.streak++;
+        if (stats.streak > stats.bestStreak) stats.bestStreak = stats.streak;
+        if (stats.bestTime === null || time < stats.bestTime) stats.bestTime = time;
+        if (sc > stats.bestScore) stats.bestScore = sc;
+        if (killer) stats.killerWins++;
+    } else {
+        stats.losses++;
+        stats.streak = 0;
+    }
+    stats.totalScore += sc;
+    saveStats(stats);
+    renderStats();
+    updateStatsMessage();
+    updateProfileDisplay();
+}
+
+function renderStats() {
+    const stats = getStats();
+    document.getElementById('statGames').textContent = stats.games;
+    document.getElementById('statWins').textContent = stats.wins;
+    document.getElementById('statLosses').textContent = stats.losses;
+    document.getElementById('statStreak').textContent = stats.streak;
+    document.getElementById('statBestStreak').textContent = stats.bestStreak;
+    document.getElementById('statBestScore').textContent = stats.bestScore;
+    document.getElementById('statTotalScore').textContent = stats.totalScore;
+    document.getElementById('statBestTime').textContent = stats.bestTime ? fmt(stats.bestTime) : '—';
+    document.getElementById('statTotalTime').textContent = formatHours(stats.totalTime);
+    document.getElementById('statKillerWins').textContent = stats.killerWins || 0;
+    updateStatsMessage();
+}
+
+function formatHours(seconds) {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    if (h > 0) return h + 'ч ' + m + 'м';
+    if (m > 0) return m + 'м';
+    return seconds + 'с';
+}
+
+function updateStatsMessage() {
+    const stats = getStats();
+    const msg = $('statsMessage');
+    if (stats.wins === 0) {
+        msg.textContent = '⭐ Пока нет побед. Начни игру!';
+    } else if (stats.wins === 1) {
+        msg.textContent = '🌟 Первая победа! Поздравляем!';
+    } else if (stats.wins < 5) {
+        msg.textContent = '🔥 Уже ' + stats.wins + ' побед! Так держать!';
+    } else if (stats.wins < 10) {
+        msg.textContent = '💪 ' + stats.wins + ' побед! Ты становишься мастером!';
+    } else {
+        msg.textContent = '🏆 ' + stats.wins + ' побед! Ты настоящий мастер Судоку!';
+    }
+}
+
+// ---- ПРОФИЛЬ ----
+function updateProfileDisplay() {
+    const stats = getStats();
+    document.getElementById('profileName').textContent = profileName;
+    document.getElementById('profileGames').textContent = stats.games;
+    document.getElementById('profileWins').textContent = stats.wins;
+    document.getElementById('profileTime').textContent = formatHours(stats.totalTime);
+    document.getElementById('profileKiller').textContent = stats.killerWins || 0;
+    document.getElementById('profileBestScore').textContent = stats.bestScore;
+    
+    const sub = document.getElementById('profileSub');
+    if (stats.wins === 0) sub.textContent = 'Новичок';
+    else if (stats.wins < 5) sub.textContent = 'Игрок-любитель';
+    else if (stats.wins < 20) sub.textContent = 'Опытный игрок';
+    else if (stats.wins < 50) sub.textContent = 'Мастер судоку';
+    else sub.textContent = 'Легенда судоку 🏆';
+}
+
+function saveProfileName(name) {
+    profileName = name.trim() || 'Игрок';
+    localStorage.setItem('sudoku_profile_name', profileName);
+    updateProfileDisplay();
+    showToast('👤 Имя сохранено!', '✅');
+}
+
+// ---- НАВИГАЦИЯ ----
+const menuScreen = $('menuScreen'), modeScreen = $('modeScreen');
+const statsScreen = $('statsScreen'), themesScreen = $('themesScreen');
+const rulesScreen = $('rulesScreen'), profileScreen = $('profileScreen');
+const gameScreen = $('gameScreen');
+
+function showScreen(screen) {
+    [menuScreen, modeScreen, statsScreen, themesScreen, rulesScreen, profileScreen, gameScreen]
+        .forEach(s => s.classList.add('hidden'));
+    screen.classList.remove('hidden');
+    if (screen === statsScreen) renderStats();
+    if (screen === profileScreen) updateProfileDisplay();
+    if (screen === themesScreen) {
+        document.querySelectorAll('.theme-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.theme === currentTheme);
+        });
+    }
+}
+
+// ---- ТЕМЫ ----
+const themes = {
+    peach: {
+        bg: 'linear-gradient(145deg, #e8d5c8, #d4bfb0, #c0a898)',
+        board: 'linear-gradient(145deg, #f5ece8, #e8ddd8)',
+        grid: 'rgba(192, 96, 80, 0.2)',
+        gridLight: 'rgba(192, 96, 80, 0.08)',
+        highlight: 'rgba(192, 96, 80, 0.12)',
+        highlightBorder: 'rgba(192, 96, 80, 0.3)'
+    },
+    blue: {
+        bg: 'linear-gradient(145deg, #c8d8e5, #b0c8d8, #98b0c8)',
+        board: 'linear-gradient(145deg, #e8edf0, #d8e0e8)',
+        grid: 'rgba(60, 120, 180, 0.2)',
+        gridLight: 'rgba(60, 120, 180, 0.08)',
+        highlight: 'rgba(60, 120, 180, 0.12)',
+        highlightBorder: 'rgba(60, 120, 180, 0.3)'
+    },
+    green: {
+        bg: 'linear-gradient(145deg, #c8e0d5, #b0d0c0, #98b8a8)',
+        board: 'linear-gradient(145deg, #e8f0ec, #d8e8e0)',
+        grid: 'rgba(60, 160, 120, 0.2)',
+        gridLight: 'rgba(60, 160, 120, 0.08)',
+        highlight: 'rgba(60, 160, 120, 0.12)',
+        highlightBorder: 'rgba(60, 160, 120, 0.3)'
+    },
+    rose: {
+        bg: 'linear-gradient(145deg, #e8d0d0, #d8b8b8, #c8a0a8)',
+        board: 'linear-gradient(145deg, #f0e8e8, #e8d8d8)',
+        grid: 'rgba(180, 100, 110, 0.2)',
+        gridLight: 'rgba(180, 100, 110, 0.08)',
+        highlight: 'rgba(180, 100, 110, 0.12)',
+        highlightBorder: 'rgba(180, 100, 110, 0.3)'
+    },
+    lavender: {
+        bg: 'linear-gradient(145deg, #d8d0e8, #c0b8d8, #a8a0c0)',
+        board: 'linear-gradient(145deg, #ece8f0, #e0d8e8)',
+        grid: 'rgba(120, 80, 160, 0.2)',
+        gridLight: 'rgba(120, 80, 160, 0.08)',
+        highlight: 'rgba(120, 80, 160, 0.12)',
+        highlightBorder: 'rgba(120, 80, 160, 0.3)'
+    }
+};
+
+function applyTheme(theme) {
+    currentTheme = theme;
+    const t = themes[theme] || themes.peach;
+    document.body.style.background = t.bg;
+    document.body.style.backgroundSize = '200% 200%';
+    document.body.style.animation = 'gradientShift 10s ease-in-out infinite alternate';
+    canvas.style.background = t.board;
+    localStorage.setItem('sudoku_theme', theme);
+    draw();
+}
+
+function loadTheme() {
+    const saved = localStorage.getItem('sudoku_theme');
+    if (saved) applyTheme(saved);
+}
+
+// ---- ГЕНЕРАЦИЯ ----
+function generateSudoku(diff) {
+    let grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+    solve(grid);
+    solution = grid.map(r => [...r]);
+    const remove = { easy: 32, medium: 46, hard: 56, extreme: 62 } [diff] || 46;
+    const puzzle = grid.map(r => [...r]);
+    let removed = 0;
+    while (removed < remove) {
+        const r = Math.floor(Math.random() * 9), c = Math.floor(Math.random() * 9);
+        if (puzzle[r][c] !== 0) { puzzle[r][c] = 0; removed++; }
+    }
+    return puzzle;
+}
+
+function generateKillerSudoku() {
+    let grid = Array.from({ length: 9 }, () => Array(9).fill(0));
+    solve(grid);
+    solution = grid.map(r => [...r]);
+    const puzzle = grid.map(r => [...r]);
+    
+    killerCages = [];
+    killerSums = [];
+    const used = Array.from({ length: 9 }, () => Array(9).fill(false));
+    const cages = [];
+    
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (!used[r][c]) {
+                const cage = [{r, c}];
+                used[r][c] = true;
+                const neighbors = [
+                    {r: r-1, c}, {r: r+1, c}, {r, c: c-1}, {r, c: c+1}
+                ];
+                const shuffled = shuffle(neighbors);
+                let added = 1 + Math.floor(Math.random() * 3);
+                for (const n of shuffled) {
+                    if (added >= 4) break;
+                    if (n.r >= 0 && n.r < 9 && n.c >= 0 && n.c < 9 && !used[n.r][n.c]) {
+                        if (Math.random() < 0.6) {
+                            cage.push(n);
+                            used[n.r][n.c] = true;
+                            added++;
+                        }
+                    }
+                }
+                cages.push(cage);
+                const sum = cage.reduce((s, cell) => s + solution[cell.r][cell.c], 0);
+                killerSums.push(sum);
+                killerCages.push(cage);
+            }
+        }
+    }
+    
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            puzzle[r][c] = 0;
+        }
+    }
+    
+    isKillerMode = true;
+    return puzzle;
+}
+
+function solve(grid) {
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (grid[r][c] === 0) {
+                const nums = shuffle([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+                for (const n of nums) {
+                    if (isValid(grid, r, c, n)) {
+                        grid[r][c] = n;
+                        if (solve(grid)) return true;
+                        grid[r][c] = 0;
+                    }
+                }
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
+function isValid(grid, r, c, n) {
+    for (let i = 0; i < 9; i++) {
+        if (grid[r][i] === n) return false;
+        if (grid[i][c] === n) return false;
+        const br = 3 * Math.floor(r / 3) + Math.floor(i / 3);
+        const bc = 3 * Math.floor(c / 3) + i % 3;
+        if (grid[br][bc] === n) return false;
+    }
+    return true;
+}
+
+function shuffle(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1));
+            [a[i], a[j]] = [a[j], a[i]]; } return a; }
+
+// ---- ТАЙМЕР ----
+function startTimer() { if (timerStarted || isPaused) return;
+    timerStarted = true;
+    timerInterval = setInterval(() => { seconds++;
+        gTimer.textContent = fmt(seconds); }, 1000); }
+
+function stopTimer() { clearInterval(timerInterval);
+    timerInterval = null;
+    timerStarted = false; }
+
+function resetTimer() { stopTimer();
+    seconds = 0;
+    timerStarted = false;
+    gTimer.textContent = '00:00'; }
+
+function fmt(s) { return String(Math.floor(s / 60)).padStart(2, '0') + ':' + String(s % 60).padStart(2, '0'); }
+
+// ---- ПАУЗА ----
+function togglePause() {
+    if (gameOver || !isGameActive) return;
+    isPaused = !isPaused;
+    if (isPaused) {
+        stopTimer();
+        pauseOverlay.classList.add('show');
+        document.getElementById('gPauseBtn').textContent = '▶️';
+        document.getElementById('gPauseBtn').classList.add('paused');
+    } else {
+        startTimer();
+        pauseOverlay.classList.remove('show');
+        document.getElementById('gPauseBtn').textContent = '⏸️';
+        document.getElementById('gPauseBtn').classList.remove('paused');
+    }
+}
+
+// ---- СЧЁТЧИКИ ----
+function getFreeCounts() {
+    const counts = {};
+    for (let i = 1; i <= 9; i++) counts[i] = 9;
+    for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++) { const v = board[r][c]; if (v > 0 && counts[v] !== undefined) counts[v]--; }
+    return counts;
+}
+
+function checkNumberCompleted(num) {
+    let count = 0;
+    for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++) { if (board[r][c] === num) count++; }
+    return count === 9;
+}
+
+function updateProgress() {
+    totalCells = 0;
+    filledCells = 0;
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (initialBoard[r][c] === 0) totalCells++;
+            if (board[r][c] !== 0 && initialBoard[r][c] === 0) filledCells++;
+        }
+    }
+    const progress = totalCells > 0 ? (filledCells / totalCells) * 100 : 0;
+    progressBar.style.width = progress + '%';
+}
+
+function renderNumberPad() {
+    const free = getFreeCounts();
+    let html = '';
+    for (let i = 1; i <= 9; i++) {
+        const remaining = free[i] || 0;
+        const isCompleted = completedNumbers.has(i);
+        const active = selectedNumber === i ? 'active' : '';
+        const completedClass = isCompleted ? 'completed' : '';
+        const zeroClass = remaining === 0 && !isCompleted ? 'zero' : '';
+        html += `
+                <button class="num-btn ${active} ${completedClass}" data-num="${i}">
+                    ${i}
+                    <span class="count-badge ${zeroClass}">${remaining}</span>
+                </button>
+            `;
+    }
+    html += `<button class="num-btn erase" data-num="0">✕</button>`;
+    gNumberPad.innerHTML = html;
+
+    gNumberPad.querySelectorAll('.num-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (isPaused || gameOver || !isGameActive) return;
+            const num = parseInt(btn.dataset.num);
+            if (num >= 1 && num <= 9) {
+                selectedNumber = selectedNumber === num ? null : num;
+                gNumberPad.querySelectorAll('.num-btn').forEach(b => b.classList.remove('active'));
+                if (selectedNumber) {
+                    gNumberPad.querySelector(`.num-btn[data-num="${selectedNumber}"]`)?.classList.add('active');
+                }
+                gSelectedNum.textContent = selectedNumber || '—';
+                draw();
+                if (selectedCell && selectedNumber && board[selectedCell.row][selectedCell.col] === 0 && initialBoard[
+                        selectedCell.row][selectedCell.col] === 0) {
+                    setNumber(selectedNumber);
+                }
+            } else {
+                if (selectedCell) setNumber(0);
+            }
+        });
+    });
+}
+
+function showToast(message, emoji = '🎉') {
+    toastMessage.textContent = message;
+    miniToast.querySelector('.emoji').textContent = emoji;
+    miniToast.classList.add('show');
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(() => { miniToast.classList.remove('show'); }, 2500);
+}
+let toastTimeout = null;
+
+function fireConfetti(count = 60) {
+    const colors = ['#c09040', '#4a8a70', '#c06050', '#7ab8d8', '#906090', '#d4a0a8', '#6aaa88'];
+    for (let i = 0; i < count; i++) {
+        const el = document.createElement('div');
+        el.className = 'confetti';
+        const size = 6 + Math.random() * 10;
+        const x = Math.random() * 100;
+        const delay = Math.random() * 2;
+        const duration = 2 + Math.random() * 2;
+        const color = colors[Math.floor(Math.random() * colors.length)];
+        const isCircle = Math.random() > 0.5;
+        el.style.cssText = `
+                left: ${x}%;
+                width: ${size}px;
+                height: ${isCircle ? size : size * 0.4}px;
+                background: ${color};
+                border-radius: ${isCircle ? '50%' : '2px'};
+                animation-delay: ${delay}s;
+                animation-duration: ${duration}s;
+                transform: rotate(${Math.random() * 360}deg);
+            `;
+        confettiContainer.appendChild(el);
+        setTimeout(() => el.remove(), (delay + duration) * 1000 + 100);
+    }
+}
+
+function loadSavedGame() {
+    const data = loadGame();
+    if (!data) return false;
+
+    board = data.board;
+    solution = data.solution;
+    initialBoard = data.initialBoard;
+    errors = data.errors || 0;
+    hintsLeft = data.hintsLeft || 3;
+    score = data.score || 0;
+    seconds = data.seconds || 0;
+    currentMode = data.currentMode || 'medium';
+    currentTheme = data.currentTheme || 'peach';
+    completedNumbers = new Set(data.completedNumbers || []);
+    history = data.history || [];
+    correctStreak = data.correctStreak || 0;
+    isKillerMode = data.isKillerMode || false;
+    killerSums = data.killerSums || [];
+    killerCages = data.killerCages || [];
+    notes = (data.notes || Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => [])))
+        .map(row => row.map(col => new Set(col)));
+
+    applyTheme(currentTheme);
+
+    gTimer.textContent = fmt(seconds);
+    updateGameUI();
+    renderNumberPad();
+    updateProgress();
+    draw();
+
+    const modeNames = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный', extreme: 'Экстрим', killer: 'Киллер' };
+    gModeLabel.textContent = isKillerMode ? '💀 Киллер' : (modeNames[currentMode] || 'Средний');
+    gDiffBadge.textContent = isKillerMode ? '💀 Киллер' : (modeNames[currentMode] || 'Средний');
+    gDiffBadge.className = 'difficulty-badge ' + (isKillerMode ? 'killer' : currentMode);
+    gSelectedNum.textContent = '—';
+
+    gameOver = false;
+    isGameActive = true;
+    selectedCell = null;
+    selectedNumber = null;
+    isPaused = false;
+    pauseOverlay.classList.remove('show');
+    document.getElementById('gPauseBtn').textContent = '⏸️';
+    document.getElementById('gPauseBtn').classList.remove('paused');
+
+    gStatus.textContent = '⏳ Игра загружена';
+    gStatus.className = 'status';
+
+    showScreen(gameScreen);
+    setTimeout(() => { if (!gameOver && isGameActive && !isPaused) startTimer(); }, 300);
+    return true;
+}
+
+// ---- ОСНОВНАЯ ЛОГИКА ----
+function initGame(diff) {
+    currentMode = diff || currentMode;
+    isKillerMode = (diff === 'killer');
+    
+    let puzzle;
+    if (isKillerMode) {
+        puzzle = generateKillerSudoku();
+    } else {
+        puzzle = generateSudoku(currentMode);
+    }
+    
+    board = puzzle.map(r => [...r]);
+    initialBoard = puzzle.map(r => [...r]);
+    selectedCell = null;
+    selectedNumber = null;
+    errors = 0;
+    hintsLeft = 3;
+    score = 0;
+    gameOver = false;
+    history = [];
+    notes = Array.from({ length: 9 }, () => Array.from({ length: 9 }, () => new Set()));
+    completedNumbers = new Set();
+    correctStreak = 0;
+    winModal.classList.remove('active');
+    resetTimer();
+    timerStarted = false;
+    isPaused = false;
+    pauseOverlay.classList.remove('show');
+    document.getElementById('gPauseBtn').textContent = '⏸️';
+    document.getElementById('gPauseBtn').classList.remove('paused');
+    updateGameUI();
+    renderNumberPad();
+    updateProgress();
+    draw();
+    gStatus.textContent = '⚡ Игра началась';
+    gStatus.className = 'status';
+    
+    const modeNames = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный', extreme: 'Экстрим', killer: 'Киллер' };
+    gModeLabel.textContent = isKillerMode ? '💀 Киллер' : (modeNames[currentMode] || 'Средний');
+    gDiffBadge.textContent = isKillerMode ? '💀 Киллер' : (modeNames[currentMode] || 'Средний');
+    gDiffBadge.className = 'difficulty-badge ' + (isKillerMode ? 'killer' : currentMode);
+    gSelectedNum.textContent = '—';
+    isGameActive = true;
+    deleteSave();
+    updateContinueButton();
+    showScreen(gameScreen);
+    setTimeout(() => { if (!gameOver && isGameActive && !isPaused) startTimer(); }, 300);
+}
+
+function selectCell(row, col) {
+    if (gameOver || !isGameActive || isPaused) return;
+    if (row >= 0 && row < 9 && col >= 0 && col < 9) {
+        selectedCell = { row, col };
+        draw();
+        if (!timerStarted && !gameOver) startTimer();
+        
+        if (isKillerMode && gKillerInfo) {
+            let info = '';
+            for (let i = 0; i < killerCages.length; i++) {
+                if (killerCages[i].some(c => c.r === row && c.c === col)) {
+                    info = 'Сумма: ' + killerSums[i];
+                    break;
+                }
+            }
+            gKillerInfo.textContent = info;
+        }
+    }
+}
+
+function setNumber(num) {
+    if (gameOver || !selectedCell || !isGameActive || isPaused) return;
+    const { row, col } = selectedCell;
+    if (initialBoard[row][col] !== 0) return;
+    if (!timerStarted) startTimer();
+
+    if (isNotesMode) {
+        if (num === 0) { notes[row][col].clear(); } else { if (notes[row][col].has(num)) notes[row][col].delete(num);
+            else notes[row][col].add(num); }
+        board[row][col] = 0;
+        draw();
+        updateGameUI();
+        renderNumberPad();
+        updateProgress();
+        saveGame();
+        return;
+    }
+
+    if (num === 0) {
+        board[row][col] = 0;
+        notes[row][col].clear();
+        correctStreak = 0;
+        updateGameScore(-1);
+        history.push({ row, col, oldVal: board[row][col], newVal: 0 });
+        draw();
+        updateGameUI();
+        renderNumberPad();
+        updateProgress();
+        saveGame();
+        return;
+    }
+
+    if (num === solution[row][col]) {
+        board[row][col] = num;
+        notes[row][col].clear();
+        correctStreak++;
+        let bonus = 0;
+        if (correctStreak >= 3) {
+            bonus = 5;
+            showToast(`🔥 Комбо x${correctStreak}! +${bonus} бонус!`, '🔥');
+        }
+        updateGameScore(10 + bonus);
+        history.push({ row, col, oldVal: board[row][col], newVal: num });
+        draw();
+        updateGameUI();
+        renderNumberPad();
+        updateProgress();
+
+        if (checkNumberCompleted(num) && !completedNumbers.has(num)) {
+            completedNumbers.add(num);
+            showToast(`Все ${num} расставлены! 🎉`, '🎉');
+            fireConfetti(40);
+            renderNumberPad();
+        }
+        saveGame();
+        checkWinGame();
+    } else {
+        errors++;
+        correctStreak = 0;
+        updateGameScore(-5);
+        updateGameUI();
+        draw();
+        renderNumberPad();
+        gStatus.textContent = '❌ Неправильно!';
+        gStatus.className = 'status error';
+        setTimeout(() => { gStatus.className = 'status'; }, 1000);
+        if (errors >= 3) {
+            gameOver = true;
+            stopTimer();
+            gStatus.textContent = '💀 Игра окончена!';
+            gStatus.className = 'status error';
+            draw();
+            deleteSave();
+            updateContinueButton();
+            updateStats(false, seconds, score, isKillerMode);
+        } else {
+            saveGame();
+        }
+    }
+}
+
+function giveHintGame() {
+    if (gameOver || hintsLeft <= 0 || !isGameActive || isPaused) return;
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (board[r][c] === 0) {
+                board[r][c] = solution[r][c];
+                notes[r][c].clear();
+                hintsLeft--;
+                updateGameScore(5);
+                history.push({ row: r, col: c, oldVal: 0, newVal: solution[r][c] });
+                updateGameUI();
+                renderNumberPad();
+                updateProgress();
+                draw();
+                if (checkNumberCompleted(solution[r][c]) && !completedNumbers.has(solution[r][c])) {
+                    completedNumbers.add(solution[r][c]);
+                    showToast(`Все ${solution[r][c]} расставлены! 🎉`, '🎉');
+                    fireConfetti(40);
+                    renderNumberPad();
+                }
+                saveGame();
+                checkWinGame();
+                gStatus.textContent = '💡 Подсказка!';
+                gStatus.className = 'status success';
+                setTimeout(() => { gStatus.className = 'status'; }, 1000);
+                if (!timerStarted) startTimer();
+                return;
+            }
+        }
+    }
+    checkWinGame();
+}
+
+function undoGame() {
+    if (gameOver || history.length === 0 || !isGameActive || isPaused) return;
+    const last = history.pop();
+    board[last.row][last.col] = last.oldVal;
+    if (last.oldVal === 0) notes[last.row][last.col].clear();
+    correctStreak = 0;
+    updateGameScore(-3);
+    completedNumbers = new Set();
+    for (let i = 1; i <= 9; i++) { if (checkNumberCompleted(i)) completedNumbers.add(i); }
+    draw();
+    updateGameUI();
+    renderNumberPad();
+    updateProgress();
+    saveGame();
+}
+
+function clearBoardGame() {
+    if (gameOver || !isGameActive || isPaused) return;
+    for (let r = 0; r < 9; r++) {
+        for (let c = 0; c < 9; c++) {
+            if (initialBoard[r][c] === 0) { board[r][c] = 0;
+                notes[r][c].clear(); }
+        }
+    }
+    history = [];
+    correctStreak = 0;
+    completedNumbers = new Set();
+    draw();
+    updateGameUI();
+    renderNumberPad();
+    updateProgress();
+    saveGame();
+}
+
+function checkWinGame() {
+    for (let r = 0; r < 9; r++)
+        for (let c = 0; c < 9; c++) { if (board[r][c] !== solution[r][c]) return; }
+    gameOver = true;
+    stopTimer();
+    const time = seconds;
+    document.getElementById('finalScore').textContent = score;
+    document.getElementById('finalErrors').textContent = errors;
+    document.getElementById('finalTime').textContent = fmt(time);
+    const modeNames = { easy: 'Лёгкий', medium: 'Средний', hard: 'Сложный', extreme: 'Экстрим', killer: 'Киллер' };
+    document.getElementById('finalDifficulty').textContent = isKillerMode ? '💀 Киллер' : (modeNames[currentMode] || 'Средний');
+    winModal.classList.add('active');
+    gStatus.textContent = '🎉 Победа!';
+    gStatus.className = 'status win';
+    fireConfetti(100);
+    showToast('🏆 Ты решил(а) судоку!', '🏆');
+    deleteSave();
+    updateContinueButton();
+    updateStats(true, time, score, isKillerMode);
+}
+
+function updateGameScore(delta) { score = Math.max(0, score + delta);
+    gScore.textContent = score; }
+
+function updateGameUI() {
+    gErrors.textContent = errors;
+    gHints.textContent = hintsLeft;
+    gScore.textContent = score;
+}
+
+// ---- РИСОВАНИЕ ----
+function draw() {
+    const w = canvas.width,
+        h = canvas.height,
+        c = CELL;
+    ctx.clearRect(0, 0, w, h);
+
+    const t = themes[currentTheme] || themes.peach;
+    const gridColor = t.grid || 'rgba(192, 96, 80, 0.2)';
+    const gridLight = t.gridLight || 'rgba(192, 96, 80, 0.08)';
+    const highlightColor = t.highlight || 'rgba(192, 96, 80, 0.12)';
+    const highlightBorder = t.highlightBorder || 'rgba(192, 96, 80, 0.3)';
+
+    // Рисуем сетку с яркими линиями
+    for (let i = 0; i <= 9; i++) {
+        const bold = i % 3 === 0;
+        ctx.lineWidth = bold ? 2.5 : 1;
+        ctx.strokeStyle = bold ? 'rgba(192, 96, 80, 0.35)' : 'rgba(192, 96, 80, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(i * c, 0);
+        ctx.lineTo(i * c, h);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.moveTo(0, i * c);
+        ctx.lineTo(w, i * c);
+        ctx.stroke();
+    }
+
+    // Киллер-судоку - клетки и суммы
+    if (isKillerMode && killerCages.length > 0) {
+        ctx.strokeStyle = 'rgba(192, 96, 80, 0.2)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        for (const cage of killerCages) {
+            if (cage.length === 1) {
+                const cell = cage[0];
+                ctx.strokeRect(cell.c * c + 2, cell.r * c + 2, c - 4, c - 4);
+            } else {
+                const minR = Math.min(...cage.map(cell => cell.r));
+                const maxR = Math.max(...cage.map(cell => cell.r));
+                const minC = Math.min(...cage.map(cell => cell.c));
+                const maxC = Math.max(...cage.map(cell => cell.c));
+                ctx.strokeRect(minC * c + 2, minR * c + 2, (maxC - minC + 1) * c - 4, (maxR - minR + 1) * c - 4);
+            }
+        }
+        ctx.setLineDash([]);
+        
+        ctx.fillStyle = 'rgba(192, 96, 80, 0.3)';
+        ctx.font = '11px "Segoe UI", system-ui, sans-serif';
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        for (let i = 0; i < killerCages.length; i++) {
+            const cage = killerCages[i];
+            if (cage.length > 0) {
+                const cell = cage[0];
+                ctx.fillText(killerSums[i], cell.c * c + 4, cell.r * c + 4);
+            }
+        }
+    }
+
+    const highlightNumber = selectedNumber;
+
+    for (let r = 0; r < 9; r++) {
+        for (let c2 = 0; c2 < 9; c2++) {
+            const val = board[r][c2];
+            const x = c2 * c + c / 2,
+                y = r * c + c / 2 + 2;
+
+            if (highlightNumber && val === highlightNumber) {
+                ctx.fillStyle = highlightColor;
+                ctx.fillRect(c2 * c + 2, r * c + 2, c - 4, c - 4);
+                ctx.strokeStyle = highlightBorder;
+                ctx.lineWidth = 2;
+                ctx.strokeRect(c2 * c + 2, r * c + 2, c - 4, c - 4);
+            }
+
+            if (selectedCell) {
+                const sr = selectedCell.row,
+                    sc = selectedCell.col;
+                const sameRow = r === sr,
+                    sameCol = c2 === sc;
+                const sameBox = Math.floor(r / 3) === Math.floor(sr / 3) && Math.floor(c2 / 3) === Math.floor(sc / 3);
+
+                if (sameRow || sameCol) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.03)';
+                    ctx.fillRect(c2 * c, r * c, c, c);
+                }
+                if (sameBox && !(sameRow || sameCol)) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.01)';
+                    ctx.fillRect(c2 * c, r * c, c, c);
+                }
+                if (sameRow && sameCol) {
+                    ctx.fillStyle = 'rgba(0,0,0,0.06)';
+                    ctx.fillRect(c2 * c, r * c, c, c);
+                }
+            }
+
+            if (val !== 0) {
+                const isInitial = initialBoard[r][c2] !== 0;
+                const isError = isInitial ? false : board[r][c2] !== solution[r][c2];
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.font = `${c * 0.56}px "Segoe UI", system-ui, sans-serif`;
+                if (isInitial) {
+                    ctx.fillStyle = '#2a1a14';
+                    ctx.font = `${c * 0.58}px "Segoe UI", system-ui, sans-serif`;
+                } else if (isError) {
+                    ctx.fillStyle = '#c06050';
+                } else {
+                    ctx.fillStyle = '#2a1a14';
+                }
+                ctx.fillText(val, x, y);
+            } else {
+                const noteSet = notes[r][c2];
+                if (noteSet && noteSet.size > 0) {
+                    const ns = c * 0.2;
+                    ctx.font = `${ns}px "Segoe UI", system-ui, sans-serif`;
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillStyle = 'rgba(42, 26, 20, 0.2)';
+                    const pos = [
+                        [-0.6, -0.6],
+                        [0, -0.6],
+                        [0.6, -0.6],
+                        [-0.6, 0],
+                        [0, 0],
+                        [0.6, 0],
+                        [-0.6, 0.6],
+                        [0, 0.6],
+                        [0.6, 0.6]
+                    ];
+                    let idx = 0;
+                    for (const n of Array.from(noteSet).sort()) {
+                        if (idx < pos.length) {
+                            ctx.fillText(n, c2 * c + c / 2 + pos[idx][0] * c * 0.38, r * c + c / 2 + pos[idx][1] * c *
+                                0.38 + 1);
+                            idx++;
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+// ---- СОБЫТИЯ ----
+canvas.addEventListener('click', (e) => {
+    if (isPaused) return;
+    const rect = canvas.getBoundingClientRect();
+    const sx = canvas.width / rect.width,
+        sy = canvas.height / rect.height;
+    const x = (e.clientX - rect.left) * sx,
+        y = (e.clientY - rect.top) * sy;
+    const col = Math.floor(x / CELL),
+        row = Math.floor(y / CELL);
+    if (row >= 0 && row < 9 && col >= 0 && col < 9) {
+        selectCell(row, col);
+        if (selectedNumber && board[row][col] === 0 && initialBoard[row][col] === 0) {
+            setNumber(selectedNumber);
+        }
+    }
+});
+
+document.addEventListener('keydown', (e) => {
+    if (!isGameActive || isPaused) return;
+    if (e.key >= '1' && e.key <= '9') {
+        const num = parseInt(e.key);
+        selectedNumber = selectedNumber === num ? null : num;
+        gNumberPad.querySelectorAll('.num-btn').forEach(b => b.classList.remove('active'));
+        if (selectedNumber) {
+            gNumberPad.querySelector(`.num-btn[data-num="${selectedNumber}"]`)?.classList.add('active');
+        }
+        gSelectedNum.textContent = selectedNumber || '—';
+        draw();
+        if (selectedCell && selectedNumber && board[selectedCell.row][selectedCell.col] === 0 && initialBoard[
+                selectedCell.row][selectedCell.col] === 0) {
+            setNumber(selectedNumber);
+        }
+    } else if (e.key === 'Backspace' || e.key === 'Delete' || e.key === '0') {
+        if (selectedCell) setNumber(0);
+    } else if (e.key === 'ArrowUp' && selectedCell) {
+        selectCell(Math.max(0, selectedCell.row - 1), selectedCell.col);
+    } else if (e.key === 'ArrowDown' && selectedCell) {
+        selectCell(Math.min(8, selectedCell.row + 1), selectedCell.col);
+    } else if (e.key === 'ArrowLeft' && selectedCell) {
+        selectCell(selectedCell.row, Math.max(0, selectedCell.col - 1));
+    } else if (e.key === 'ArrowRight' && selectedCell) {
+        selectCell(selectedCell.row, Math.min(8, selectedCell.col + 1));
+    } else if (e.key === ' ' || e.key === 'Space') {
+        e.preventDefault();
+        togglePause();
+    }
+});
+
+// ---- НАВИГАЦИЯ ----
+document.getElementById('playBtn').addEventListener('click', () => { showScreen(modeScreen); });
+document.getElementById('modeBack').addEventListener('click', () => { showScreen(menuScreen); });
+document.getElementById('rulesBtn').addEventListener('click', () => { showScreen(rulesScreen); });
+document.getElementById('rulesBack').addEventListener('click', () => { showScreen(menuScreen); });
+
+document.getElementById('footerStatsBtn').addEventListener('click', () => { showScreen(statsScreen); });
+document.getElementById('footerThemesBtn').addEventListener('click', () => { showScreen(themesScreen); });
+document.getElementById('footerProfileBtn').addEventListener('click', () => { showScreen(profileScreen); });
+document.getElementById('footerKillerBtn').addEventListener('click', () => { 
+    document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+    const killerBtn = document.querySelector('.mode-btn.killer');
+    if (killerBtn) killerBtn.classList.add('selected');
+    initGame('killer');
+});
+document.getElementById('footerShareBtn').addEventListener('click', shareGame);
+
+document.getElementById('statsBack').addEventListener('click', () => { showScreen(menuScreen); });
+document.getElementById('themesBack').addEventListener('click', () => { showScreen(menuScreen); });
+document.getElementById('profileBack').addEventListener('click', () => { showScreen(menuScreen); });
+
+document.getElementById('profileSaveName').addEventListener('click', () => {
+    const input = document.getElementById('profileNameInput');
+    saveProfileName(input.value);
+    input.value = '';
+});
+
+document.getElementById('profileNameInput').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+        document.getElementById('profileSaveName').click();
+    }
+});
+
+// ---- ТЕМЫ ----
+document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        applyTheme(btn.dataset.theme);
+        if (isPaused) {
+            showToast('🎨 Тема изменена', '✅');
+        }
+    });
+});
+
+// ---- РЕЖИМЫ ----
+document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', function(e) {
+        e.preventDefault();
+        const mode = this.dataset.mode;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+        initGame(mode);
+    });
+});
+
+continueBtn.addEventListener('click', () => {
+    if (loadSavedGame()) {
+        // загружено
+    } else {
+        showToast('❌ Нет сохранённой игры', '❌');
+    }
+});
+
+document.getElementById('gameBack').addEventListener('click', () => {
+    if (timerInterval) stopTimer();
+    isGameActive = false;
+    isPaused = false;
+    pauseOverlay.classList.remove('show');
+    document.getElementById('gPauseBtn').textContent = '⏸️';
+    document.getElementById('gPauseBtn').classList.remove('paused');
+    if (!gameOver) saveGame();
+    updateContinueButton();
+    showScreen(menuScreen);
+});
+
+// ---- КНОПКИ ИГРЫ ----
+document.getElementById('gNewGame').addEventListener('click', () => {
+    if (confirm('Начать новую игру? Текущая не сохранится.')) {
+        deleteSave();
+        updateContinueButton();
+        initGame(currentMode);
+    }
+});
+document.getElementById('gHintBtn').addEventListener('click', giveHintGame);
+document.getElementById('gUndoBtn').addEventListener('click', undoGame);
+document.getElementById('gClearBtn').addEventListener('click', clearBoardGame);
+document.getElementById('gPauseBtn').addEventListener('click', togglePause);
+
+document.getElementById('gNotesBtn').addEventListener('click', () => {
+    if (isPaused) return;
+    isNotesMode = !isNotesMode;
+    document.getElementById('gNotesBtn').classList.toggle('active', isNotesMode);
+});
+
+document.getElementById('winPlayAgain').addEventListener('click', () => {
+    winModal.classList.remove('active');
+    deleteSave();
+    updateContinueButton();
+    initGame(currentMode);
+});
+
+// ---- ПОДЕЛИТЬСЯ ----
+function shareGame() {
+    const stats = getStats();
+    const text = `🧩 SUDOKU++\n` +
+                `👤 Игрок: ${profileName}\n` +
+                `🎮 Сыграно: ${stats.games} игр\n` +
+                `🏆 Побед: ${stats.wins}\n` +
+                `⭐ Лучший счёт: ${stats.bestScore}\n` +
+                `⏱️ Время в игре: ${formatHours(stats.totalTime)}\n` +
+                `💀 Киллер-побед: ${stats.killerWins || 0}\n\n` +
+                `🎯 Попробуй и ты! #SUDOKU++`;
+    
+    if (navigator.share) {
+        navigator.share({
+            title: 'SUDOKU++ - моя статистика',
+            text: text,
+        }).catch(() => {});
+    } else {
+        navigator.clipboard.writeText(text).then(() => {
+            showToast('📋 Статистика скопирована!', '✅');
+        }).catch(() => {
+            prompt('Скопируй текст:', text);
+        });
+    }
+}
+
+// ---- СТАРТ ----
+loadTheme();
+renderStats();
+updateContinueButton();
+updateProfileDisplay();
+showScreen(menuScreen);
+
+document.getElementById('profileName').textContent = profileName;
+</script>
+</body>
+</html>
